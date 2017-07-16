@@ -2,44 +2,14 @@
 <html>
 
 <head>
-        <title>Socket.IO chat</title>
+        <title>ProjectBat Socket.io Tester</title>
         <style>
-                * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                }
-
-                body {
-                        font: 13px Helvetica, Arial;
-                }
-
-                form {
-                        background: #000;
-                        padding: 3px;
-                        position: fixed;
-                        bottom: 0;
-                        width: 100%;
-                }
-
-                form input {
-                        border: 0;
-                        padding: 10px;
-                        width: 90%;
-                        margin-right: .5%;
-                }
-
-                form button {
-                        width: 9%;
-                        background: rgb(130, 224, 255);
-                        border: none;
-                        padding: 10px;
-                }
-
                 #messages {
-                        list-style-type: none;
-                        margin: 0;
-                        padding: 0;
+                        margin-left:100px;
+                        margin-top:50px;
+                        width:600px;
+                        height:400px;
+                        list-style-type: none
                 }
 
                 #messages li {
@@ -49,41 +19,100 @@
                 #messages li:nth-child(odd) {
                         background: #eee;
                 }
+
+                #m {
+                        margin-left:100px;
+                        width:300px;
+                        height:30px;
+                }
+
+                #send {
+                        margin-left:10px;
+                        height:30px;
+                }
+
+                #toolbox {
+                        margin-left:100px;
+                }
         </style>
 </head>
 
 <body>
         <ul id="messages"></ul>
         <form action="">
-                <input id="m" autocomplete="off" value="01082169122" /><button>Send</button>
-        </form>
+                <input id="m" autocomplete="off" value="" /><button id="send">Send</button>
+        </form><br /><br />
+
+        <div id="toolbox">
+                <button id="f1" onclick="f1_click()">01082169122</button>
+                <button id="f2" onclick="f2_click()">01068119122</button>
+                <button id="reqGame" onclick="reqGame_click()">reqGame</button>
+                <button id="allowGame" onclick="allowGame_click()">allowGame</button>
+        </div>
 
         <script src="/socket.io/socket.io.js"></script>
-        <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
         <script>
                 var socket = io();
 
                 $(function() {
                         $('form').submit(function() {
-                                socket.emit('sendPhoneNumber', {
-                                        'phoneNumber': $('#m').val(),
-                                        'name': '이상현'
-                                });
+                                var message = $('#m').val().split(' ');
+                                var code = message[0];
+
+                                if(code === 'sendPhoneNumber') {
+                                        socket.emit('sendPhoneNumber', {
+                                                'phoneNumber' : message[1],
+                                                'name' : message[2]
+                                        });
+                                }
+                                else if(code === 'reqGame') {
+                                        socket.emit('reqGame', {
+                                                'to' : message[1]
+                                        });
+                                }
+                                else if(code === 'allowGame') {
+                                        socket.emit('allowGame', {
+                                                'requester' : message[1]
+                                        });
+                                }
+
                                 $('#m').val('');
                                 return false;
                         });
+
                         socket.on('onlineList', (msg) => {
                                 $('#messages').append($('<li>').text(msg));
                         });
 
+                        socket.on('alert', (msg) => {
+                                $('#messages').append($('<li>').text(msg.msg));
+                        });
+
                         socket.on('reqGame', (msg) => {
-                                $('#messages').append($('<li>').text(msg.name));
+                                $('#messages').append($('<li>').text(msg.name + "이 게임을 요청했습니다."));
                         });
 
                         socket.on('signin', (msg) => {
                                 $('#messages').append($('<li>').text(msg.result));
                         });
                 });
+
+                function f1_click() {
+                        $('#m').val('sendPhoneNumber 01082169122 이상현');
+                }
+
+                function f2_click() {
+                        $('#m').val('sendPhoneNumber 01068119122 테스터');
+                }
+
+                function reqGame_click() {
+                        $('#m').val('reqGame 01068119122');
+                }
+
+                function allowGame_click() {
+                        $('#m').val('allowGame 01082169122');
+                }
         </script>
 
 </body>

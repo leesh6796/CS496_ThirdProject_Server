@@ -5,7 +5,6 @@ class User {
         constructor() {
                 this.name = '';
                 this.phoneNumber = '';
-                this.isOnline = false;
                 this.num_win = 0;
                 this.num_lose = 0;
                 this.point = 0;
@@ -44,7 +43,6 @@ class User {
 
                                         this.phoneNumber = phoneNumber;
                                         this.name = name;
-                                        this.isOnline = true;
                                         this.num_win = ele.num_win;
                                         this.num_lose = ele.num_lose;
                                         this.point = ele.point;

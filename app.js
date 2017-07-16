@@ -19,10 +19,14 @@ app.get('/', function(req, res) {
 });
 
 var clients = {}; // User 객체 관리
-var socketID = {};
+var socketID = {}; // phoneNumber를 key로 socket.id 관리
 var online = []; // 접속자 명단 관리
+
+var ready = []; // 시작 준비중인 게임 관리
 var game = []; // 진행중인 게임 관리
+
 var User = require('./user');
+var Game = require('./game');
 
 io.on('connection', (socket) => {
         console.log("a user connected");
@@ -37,6 +41,7 @@ io.on('connection', (socket) => {
                 delete clients[socket.id];
                 delete socketID[phoneNumber];
                 online = _.without(online, phoneNumber);
+                ready = _.without(ready, phoneNumber);
 
                 io.emit('onlineList', online);
 
@@ -75,23 +80,61 @@ io.on('connection', (socket) => {
                 // 접속자 명단에 to가 있으면
                 if(online.includes(to)) {
                         console.log("새 게임 요청");
+
+                        // 게임 대기열에 from_phoneNumber 저장
+                        // 상대방이 게임 수락했을 때 대기열에 있어야만 시작된다.
+                        ready.push(from_phoneNumber);
+
+                        // to 한테 게임 하자고 요청
                         io.to(socketID[to]).emit('reqGame', {name : from_name, phoneNumber : from_phoneNumber, tier : from_tier});
+                } else {
+                        console.log("오프라인 상대에게 게임 요청");
+
+                        // 온라인 아니면 오프라인이라고 알려준다.
+                        io.to(socket.id).emit('alert', {msg : "상대방이 오프라인 입니다."});
                 }
         });
-});
 
-/*io.on('connection', function(socket) {
-        console.log('a user connected');
-        socket.on('disconnect', function() {
-                console.log('user disconnected');
+        // 게임하자고 요청하고 취소했을 때
+        socket.on('stopReqGame', (params) => {
+                var from = clients[socket.io];
+                var phoneNumber = from.phoneNumber;
+                var to = params.to;
+
+                // 게임 대기열에서 삭제
+                ready = _.without(ready, phoneNumber);
+
+                // to 한테 게임 중단 알림
+                if(online.includes(to)) {
+                        io.to(socketID[to]).emit('stopReqGame', {phoneNumber : phoneNumber});
+                }
         });
 
-        socket.on('chat message', function(msg) {
-                console.log('message: ' + msg);
-                io.emit('chat message', msg);
-        });
-});
+        // 게임 요청을 수락했을 때
+        socket.on('allowGame', (params) => {
+                // allower는 게임을 수락한 사람이다.
+                var allower = clients[socket.id];
 
-http.listen(3000, function() {
-        console.log('listening on *:3000');
-});*/
+                // requester는 게임을 요청한 사람이다.
+                var requester = params.requester; // phoneNumber다.
+
+                if(online.includes(requester)) {
+                        // 게임 대기열에서 삭제
+                        ready = _.without(ready, requester);
+
+                        // 진행중인 게임 목록에 requester의 phoneNumber를 key로 하는 Game Instance 추가.
+                        game[requester] = new Game(requester, allower.phoneNumber);
+
+                        var msg = game[requester].requester + "와 " + game[requester].allower + "의 게임이 시작되었습니다.";
+
+                        // requester와 allower에게 게임이 시작되었다는 메세지를 보낸다.
+                        io.to(socket.id).emit('alert', {msg:msg}); // to allower
+                        io.to(socketID[requester]).emit('alert', {msg:msg}); // to requester
+
+                        console.log(msg);
+                } else {
+                        // requester가 online 목록에 없으면 새 게임을 시작하지 않는다.
+                        console.log(requester + "가 게임 생성 도중 사라졌습니다.");
+                }
+        });
+})
