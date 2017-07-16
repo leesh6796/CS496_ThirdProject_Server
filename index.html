@@ -48,12 +48,16 @@
                 <button id="f2" onclick="f2_click()">01068119122</button>
                 <button id="reqGame" onclick="reqGame_click()">reqGame</button>
                 <button id="allowGame" onclick="allowGame_click()">allowGame</button>
+                <button id="stopReqGame" onclick="stopReqGame_click()">stopReqGame</button>
         </div>
 
         <script src="/socket.io/socket.io.js"></script>
         <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
         <script>
                 var socket = io();
+                var isRequester = false;
+                var myName = '';
+                var enemyName = '';
 
                 $(function() {
                         $('form').submit(function() {
@@ -65,15 +69,24 @@
                                                 'phoneNumber' : message[1],
                                                 'name' : message[2]
                                         });
+
+                                        myName = message[2];
                                 }
                                 else if(code === 'reqGame') {
                                         socket.emit('reqGame', {
                                                 'to' : message[1]
                                         });
+
+                                        isRequester = true;
                                 }
                                 else if(code === 'allowGame') {
                                         socket.emit('allowGame', {
                                                 'requester' : message[1]
+                                        });
+                                }
+                                else if(code === 'stopReqGame') {
+                                        socket.emit('stopReqGame', {
+                                                'to' : message[1]
                                         });
                                 }
 
@@ -82,7 +95,7 @@
                         });
 
                         socket.on('onlineList', (msg) => {
-                                $('#messages').append($('<li>').text(msg));
+                                addLog('현재 접속 중인 목록 : ' + msg);
                         });
 
                         socket.on('alert', (msg) => {
@@ -93,10 +106,31 @@
                                 $('#messages').append($('<li>').text(msg.name + "이 게임을 요청했습니다."));
                         });
 
+                        socket.on('stopReqGame', (msg) => {
+                                $('#messages').append($('<li>').text(msg.name + "이 게임 요청을 중단했습니다."));
+                        });
+
                         socket.on('signin', (msg) => {
                                 $('#messages').append($('<li>').text(msg.result));
                         });
+
+                        socket.on('startTurn', (params) => {
+                                $('#messages').append($('<li>').text("흑 : " + params.black));
+                                $('#messages').append($('<li>').text("백 : " + params.white));
+
+                                var turn = params.turn;
+                                addLog("현재 턴 정보 : " + turn);
+                                if((turn == 0 && isRequester) || (turn == 1 && !isRequester)) {
+                                        addLog('당신의 턴입니다.');
+                                } else {
+                                        addLog('상대의 턴입니다.')
+                                }
+                        });
                 });
+
+                function addLog(msg) {
+                        $('#messages').append($('<li>').text(msg));
+                }
 
                 function f1_click() {
                         $('#m').val('sendPhoneNumber 01082169122 이상현');
@@ -112,6 +146,10 @@
 
                 function allowGame_click() {
                         $('#m').val('allowGame 01082169122');
+                }
+
+                function stopReqGame_click() {
+                        $('#m').val('stopReqGame 01068119122');
                 }
         </script>
 

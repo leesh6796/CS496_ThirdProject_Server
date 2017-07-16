@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
                                 online.push(phoneNumber);
                                 socketID[phoneNumber] = socket.id;
 
-                                io.emit('signin', {result:'complete'});
+                                io.to(socket.id).emit('signin', {result:'Sign In complete'});
                                 io.emit('onlineList', online);
 
                                 console.log("현재 접속 중");
@@ -97,8 +97,9 @@ io.on('connection', (socket) => {
 
         // 게임하자고 요청하고 취소했을 때
         socket.on('stopReqGame', (params) => {
-                var from = clients[socket.io];
+                var from = clients[socket.id];
                 var phoneNumber = from.phoneNumber;
+                var name = from.name;
                 var to = params.to;
 
                 // 게임 대기열에서 삭제
@@ -106,7 +107,9 @@ io.on('connection', (socket) => {
 
                 // to 한테 게임 중단 알림
                 if(online.includes(to)) {
-                        io.to(socketID[to]).emit('stopReqGame', {phoneNumber : phoneNumber});
+                        io.to(socketID[to]).emit('stopReqGame', {phoneNumber : phoneNumber, name : name});
+
+                        console.log(name + "이 " + to + "에게 게임 요청 중단.");
                 }
         });
 
@@ -118,23 +121,28 @@ io.on('connection', (socket) => {
                 // requester는 게임을 요청한 사람이다.
                 var requester = params.requester; // phoneNumber다.
 
-                if(online.includes(requester)) {
+                if(online.includes(requester) && ready.includes(requester)) {
                         // 게임 대기열에서 삭제
                         ready = _.without(ready, requester);
 
                         // 진행중인 게임 목록에 requester의 phoneNumber를 key로 하는 Game Instance 추가.
                         game[requester] = new Game(requester, allower.phoneNumber);
+                        var thisGame = game[requester];
 
-                        var msg = game[requester].requester + "와 " + game[requester].allower + "의 게임이 시작되었습니다.";
+                        var msg = thisGame.requester + "와 " + thisGame.allower + "의 게임이 시작되었습니다.";
 
                         // requester와 allower에게 게임이 시작되었다는 메세지를 보낸다.
                         io.to(socket.id).emit('alert', {msg:msg}); // to allower
                         io.to(socketID[requester]).emit('alert', {msg:msg}); // to requester
 
                         console.log(msg);
+
+                        thisGame.startTurn(io, socketID[requester], socket.id);
                 } else {
+                        var msg = requester + "가 게임 생성 도중 사라졌습니다.";
                         // requester가 online 목록에 없으면 새 게임을 시작하지 않는다.
-                        console.log(requester + "가 게임 생성 도중 사라졌습니다.");
+                        io.to(socket.id).emit('alert', {msg:msg});
+                        console.log(msg);
                 }
         });
-})
+});
