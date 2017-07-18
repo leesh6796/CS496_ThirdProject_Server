@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+        <head>
+                <meta charset="utf-8">
+                <meta http-equiv="X-UA-Compatible" content="IE=edge">
+                <!-- 위 3개의 메타 태그는 *반드시* head 태그의 처음에 와야합니다; 어떤 다른 콘텐츠들은 반드시 이 태그들 *다음에* 와야 합니다 -->
+                <title>Project Bat</title>
+                <link href="css/style.css" rel="stylesheet">
+        </head>
+        <body class="page">
+                <div id="mainview">
+                        <form id="fm_signin" action="">
+                                <input type="text" id="tb_phoneNumber" autocomplete="off" placeholder="핸드폰 번호를 입력하세요" /><br />
+                                <input type="text" id="tb_name" autocomplete="off" placeholder="이름을 입력하세요" /><br />
+                                <button id="bt_login">로그인</button>
+                        </form>
+
+                        <div id="game">
+                                <img id="board" src="img/board.png" />
+                                <canvas id='view' width='536px' height='536px'></canvas>
+                        </div>
+                </div>
+
+                <script src="/js/jquery.min.js"></script> <!-- redirect javascript는 js/가 아닌 /js/ -->
+                <script src="js/layout.js"></script>
+                <script src="/js/jcanvas.min.js"></script>
+                <script src="/socket.io/socket.io.js"></script>
+
+                <script>
+                        var socket = io();
+                        var dev = true;
+                        var board = $('#board');
+
+                        var gameStart = function() {
+                                $('#fm_signin').css('display', 'none');
+                                $('#game').css('display', 'block');
+                                $('#mainview').css('background-color', '#00802b');
+
+                                // 바둑판 클릭했을 때
+                                // 왼쪽 맨 위는 (25,25). 가로 세로 15 안에 클릭하면 하게 하자.
+                                $('#board').click(function(e) {
+                                        var offset = $(this).offset();
+                                        px = Math.round(e.pageX - offset.left);
+                                        py = Math.round(e.pageY - offset.top);
+                                });
+
+                                var image = document.getElementById('board');
+                                var view = document.getElementById('view');
+                                view.style.position = "absolute";
+                                view.style.left = 
+                        };
+
+                        // board의 per%만큼의 좌표를 가져온다.
+                        var getWidthPer = function (per) {
+                                var board_width = parseFloat(board.css('width').replace('px', ''));
+                                var per_width = board_width * (per / 100);
+                                return Math.round(per_width);
+                        }
+
+                        var getHeightPer = function (per) {
+                                var board_height = parseFloat(board.css('height').replace('px', ''));
+                                var per_height = board_height * (per / 100);
+                                return Math.round(per_height);
+                        }
+
+                        $(function() {
+                                // 로그인 기능
+                                $('#fm_signin').submit(function() {
+                                        var tb_phoneNumber = $('#tb_phoneNumber').val();
+                                        var tb_name = $('#tb_name').val();
+
+                                        if(tb_phoneNumber === "") {
+                                                alert('핸드폰 번호를 입력하세요.');
+                                        }
+                                        else {
+                                                if(tb_name === "") {
+                                                        alert('이름을 입력하세요.');
+                                                }
+                                                else {
+                                                        socket.emit('sendPhoneNumber', {
+                                                                'phoneNumber' : tb_phoneNumber,
+                                                                'name' : tb_name
+                                                        });
+                                                }
+                                        }
+
+                                        return false;
+                                });
+
+                                socket.on('signin', function(params) {
+                                        if(params.result === 'Sign In complete') {
+                                                gameStart();
+                                        }
+                                });
+
+                                if(dev) {
+                                        gameStart();
+                                }
+                        });
+
+                        function bt_login_click() {
+
+                        }
+                </script>
+        </body>
+</html>

@@ -1,0 +1,50 @@
+html, body {
+        height:100%;
+        overflow:hidden;
+        background-color:#4d4d4d;
+        margin:0px;
+}
+
+#mainview {
+        margin-top:0px;
+        margin-left:25%;
+        margin-right:25%;
+
+        background-color:#FFFFFF;
+        height:100%;
+}
+
+#tb_phoneNumber, #tb_name {
+        width:60%;
+        margin-top:40%;
+        margin-left:20%;
+        margin-right:20%;
+        font-size:20pt;
+}
+
+#tb_name {
+        margin-top:2%;
+}
+
+#bt_login {
+        margin-left:65.5%;
+        margin-top:30px;
+        width:15%;
+        height:50px;
+        font-size:20pt;
+}
+
+#game {
+        display:none;
+        height:100%;
+}
+
+#board {
+        width:70%;
+        height:70%;
+        margin-top:10%;
+        margin-left:15%;
+        margin-right:15%;
+        border:2px solid #000000;
+        position:relative;
+}

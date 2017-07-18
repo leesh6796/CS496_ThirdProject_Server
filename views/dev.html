@@ -49,6 +49,7 @@
                 <button id="reqGame" onclick="reqGame_click()">reqGame</button>
                 <button id="allowGame" onclick="allowGame_click()">allowGame</button>
                 <button id="stopReqGame" onclick="stopReqGame_click()">stopReqGame</button>
+                <button id="putPoint" onclick="putPoint_click()">putPoint</button>
                 <button id="testBoard" onclick="testBoard_click()">testBoard</button>
         </div>
 
@@ -57,6 +58,7 @@
         <script src="http://underscorejs.org/underscore-min.js"></script>
         <script>
                 var socket = io();
+                var gameRequester = '';
                 var isRequester = false;
 
                 var myName = '';
@@ -65,25 +67,11 @@
                 var myPhoneNumber = '';
                 var enemyPhoneNumber = '';
 
-                var testBoard = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // col 8 row 7
+                var remainChangeTurn = 0;
 
                 var getValues = (json) => {
                         return _.map(json, (value, key) => {
-                                return value;
+                                return value.name;
                         });
                 }
 
@@ -112,6 +100,8 @@
                                         socket.emit('allowGame', {
                                                 'requester' : message[1]
                                         });
+
+                                        isRequester = false;
                                 }
                                 else if(code === 'stopReqGame') {
                                         socket.emit('stopReqGame', {
@@ -122,6 +112,15 @@
                                         socket.emit('testBoard', {
                                                 'requester':'01082169122',
                                                 'board' : testBoard
+                                        });
+                                }
+                                else if(code === 'putPoint') {
+                                        socket.emit('putPoint', {
+                                                'isRequester' : isRequester,
+                                                'requester' : gameRequester,
+                                                'phoneNumber' : myPhoneNumber,
+                                                'col' : message[1],
+                                                'row' : message[2]
                                         });
                                 }
 
@@ -156,6 +155,12 @@
                                 enemyName = params.enemyName;
                                 enemyPhoneNumber = params.enemyPhoneNumber;
 
+                                if(isRequester) {
+                                        gameRequester = myPhoneNumber;
+                                } else {
+                                        gameRequester = enemyPhoneNumber;
+                                }
+
                                 if(params.black === myPhoneNumber) {
                                         black = myName;
                                         white = enemyName;
@@ -178,6 +183,29 @@
                                 } else {
                                         addLog('상대의 턴입니다.')
                                 }
+                        });
+
+                        socket.on('nextTurn', (params) => {
+                                remainChangeTurn = params.remainChangeTurn;
+                                turn = params.turn;
+                                prev_col = params.prev_col;
+                                prev_row = params.prev_row;
+                                prev_type = params.prev_type;
+
+                                var stone = "흑";
+                                if(prev_type == '2') stone = "백";
+
+                                addLog(enemyName + "이 (" + prev_col + ", " + prev_row + ")에 " + stone + "을 두었습니다.");
+                                if((turn == 0 && isRequester) || (turn == 1 && !isRequester)) {
+                                        addLog('당신의 턴입니다.');
+                                } else {
+                                        addLog('상대의 턴입니다.')
+                                }
+                        });
+
+                        socket.on('endGame', (params) => {
+                                addLog('게임 끝');
+                                addLog('winner : ' + params.winner);
                         });
                 });
 
@@ -203,6 +231,10 @@
 
                 function stopReqGame_click() {
                         $('#m').val('stopReqGame 01068119122');
+                }
+
+                function putPoint_click() {
+                        $('#m').val('putPoint ');
                 }
 
                 function testBoard_click() {

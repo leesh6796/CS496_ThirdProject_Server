@@ -54,6 +54,7 @@
       "resolved": "https://registry.npmjs.org/blob/-/blob-0.0.4.tgz",
       "version": "0.0.4"
     },
+    "body-parser": "^1.17.2",
     "bson": {
       "integrity": "sha1-k8ENOeqltYQVy8QFLz5T5WKwtyw=",
       "resolved": "https://registry.npmjs.org/bson/-/bson-1.0.4.tgz",
@@ -132,6 +133,7 @@
       "resolved": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
       "version": "1.1.1"
     },
+    "ejs": "^2.5.6",
     "encodeurl": {
       "integrity": "sha1-eePVhlU0aQn+bw9Fpd5oEDspTSA=",
       "resolved": "https://registry.npmjs.org/encodeurl/-/encodeurl-1.0.1.tgz",
@@ -198,6 +200,7 @@
       "version": "1.8.0"
     },
     "express": "^4.15.3",
+    "express-session": "^1.15.3",
     "finalhandler": {
       "dependencies": {
         "debug": {
@@ -276,6 +279,8 @@
       "resolved": "https://registry.npmjs.org/isarray/-/isarray-2.0.1.tgz",
       "version": "2.0.1"
     },
+    "jcanvas": "^20.1.1",
+    "jquery": "^3.2.1",
     "media-typer": {
       "integrity": "sha1-hxDXrwqmJvj/+hzgAWhUUmMlV0g=",
       "resolved": "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz",

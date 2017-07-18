@@ -9,7 +9,9 @@ class Game {
                 this.reqId = requesterId;
                 this.aloId = allowerId;
 
-                this.board = new Array();
+                this.size = 19;
+
+                this.board = [];
                 this.turn = Date.now() % 2; // 누구 턴인지. 0이면 requester, 1이면 allower
                 this.remainChangeTurn = 6; // 6개 돌 두면 (각 각 3개씩) 흑, 백이 바뀐다.
 
@@ -22,10 +24,10 @@ class Game {
                         this.white = this.req.phoneNumber;
                 }
 
-                // 15 * 15 바둑판을 만들어둔다.
+                // 19 * 19 바둑판을 만들어둔다.
                 var i;
-                for(i=0; i<15*15; i++) {
-                        this.board.push(0);
+                for(i=0; i<this.size; i++) {
+                        this.board.push([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
                 }
         }
 
@@ -34,14 +36,26 @@ class Game {
         }
 
         getPoint(col, row) {
-                return this.board[15 * col + row];
+                return this.board[parseInt(col)][parseInt(row)];
         }
 
         setPoint(col, row, val) {
-                this.board[getPoint(col, row)] = val;
+                this.board[parseInt(col)][parseInt(row)] = val;
         }
 
-        swap(io, requesterId, allowerId) {
+        printBoard() {
+                var i, j;
+                var line;
+                for(i=0; i<this.size; i++) {
+                        line = '';
+                        for(j=0; j<this.size; j++) {
+                                line += this.board[i][j] + " ";
+                        }
+                        console.log(line);
+                }
+        }
+
+        swap(io) {
                 var black = this.black;
                 var white = this.white;
 
@@ -50,8 +64,11 @@ class Game {
                 this.white = black;
 
                 // 플레이어들에게 알린다.
-                io.to(requesterId).emit('swap', {black : this.black, white : this.white});
-                io.to(allowerId).emit('swap', {black : this.black, white : this.white});
+                io.to(this.reqId).emit('swap', {black : this.black, white : this.white});
+                io.to(this.aloId).emit('swap', {black : this.black, white : this.white});
+
+                console.log('Swap 진행')
+                console.log('black : ' + this.black + ', white : ' + this.white);
         }
 
         // 게임이 시작하면 돌, 턴 정보와 상대 전적을 보낸다.
@@ -86,11 +103,13 @@ class Game {
                 var col = params.col;
                 var row = params.row;
 
+                console.log("현재 그 자리는 : " + this.getPoint(col, row));
                 if(this.getPoint(col, row) == 0) { // (col, row)가 빈 자리일 때만
                         var type = 1; // 기본은 흑돌
                         if(this.white === phoneNumber) type = 2; // white가 phoneNumber면
 
                         this.setPoint(col, row, type);
+                        this.printBoard();
 
                         this.checkFinish(col, row, type, (result) => {
                                 if(result) { // 게임 끝
@@ -137,8 +156,11 @@ class Game {
                 var count = 0;
                 var cc, cr; // cursor col, cursor row
                 var isInner = (cc, cr) => {
-                        return 0 <= cc && cc < 15 && 0 <= cr && cr < 15;
+                        return 0 <= cc && cc < this.size && 0 <= cr && cr < this.size;
                 }
+
+                col = parseInt(col);
+                row = parseInt(row);
 
                 // row만 감소시켜, type과 다를 때 까지 감소
                 cc = col;
@@ -222,15 +244,15 @@ class Game {
                         if(this.turn == 0) this.turn = 1;
                         else this.turn = 0;
 
+                        // 플레이어들에게 남은 턴 수와 누구 턴인지를 알린다.
+                        io.to(this.reqId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
+                        io.to(this.aloId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
+
                         // 0 되면 턴이 바뀐다.
                         if(this.remainChangeTurn == 0) {
                                 this.remainChangeTurn = 6;
                                 this.swap(io);
                         }
-
-                        // 플레이어들에게 남은 턴 수와 누구 턴인지를 알린다.
-                        io.to(this.reqId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
-                        io.to(this.aloId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
                 }
         }
 }

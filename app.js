@@ -5,9 +5,27 @@ var io = require('socket.io')(http);
 var path = require('path');
 var mongo = require('mongodb').MongoClient;
 var vsprintf = require('sprintf').vsprintf;
+var bodyParser = require('body-parser');
+var session = require('express-session');
 var _ = require('underscore');
 
 app.use(express.static(path.join(__dirname, "public")));
+
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+app.engine('html', require('ejs').renderFile);
+
+app.use('/js', express.static(__dirname + '/node_modules/sprintf/lib')); // redirect sprintf
+app.use('/js', express.static(__dirname + '/node_modules/jquery/dist')); // redirect jquery
+app.use('/js', express.static(__dirname + '/node_modules/jcanvas/dist/min')); // redirect jcanvas
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended:true}));
+app.use(session({
+ secret: '@#$%^&*($)',
+ resave: false,
+ saveUninitialized: true
+}));
 
 var port = process.env.PORT || 3000;
 http.listen(port, () => {
@@ -15,7 +33,11 @@ http.listen(port, () => {
 });
 
 app.get('/', function(req, res) {
-        res.sendFile(__dirname + '/index.html');
+        res.render('index.html');
+});
+
+app.get('/dev', function(req, res) {
+        res.render('dev.html');
 });
 
 var clients = {}; // User 객체 관리
@@ -41,6 +63,10 @@ io.on('connection', (socket) => {
                 });
         }
 
+        var sendOnlineList = () => {
+                return onlineNames;
+        };
+
         // 연결 끊겼을 때
         // 연결 끊겼을 때 진행중인 게임 없애는 기능 만들어야한다.
         socket.on('disconnect', () => {
@@ -61,16 +87,50 @@ io.on('connection', (socket) => {
 
                 // 나간 플레이어가 진행중인 게임이 있을 경우
                 if(target != undefined) {
-                        target = target.req.phoneNumber;
-                        delete game[target];
-                }
+                        var reqPhoneNumber = target.req.phoneNumber;
+                        var aloPhoneNumber = target.alo.phoneNumber;
+                        var reqId = target.reqId;
+                        var aloId = target.aloId;
+                        var reqName = target.req.name;
+                        var aloName = target.alo.name;
 
-                console.log(game);
+                        if(online.includes(reqPhoneNumber)) {
+                                console.log(reqName + "이 탈주");
+                                io.to(reqId).emit('escapeGame', {});
+                        }
+
+                        if(online.includes(aloPhoneNumber)) {
+                                console.log(aloName + "이 탈주");
+                                io.to(aloId).emit('escapeGame', {});
+                        }
+
+                        targetPhoneNumber = target.req.phoneNumber;
+                        delete game[targetPhoneNumber];
+                }
 
                 io.emit('onlineList', onlineNames);
 
                 console.log("현재 접속 중");
                 console.log(onlineNames);
+        });
+
+        // 클라이언트가 게임에서 나가면.
+        socket.on('escapeGame', (params) => {
+                var requester = params.requester;
+
+                var target = game[requester];
+                if(target != undefined) {
+                        var reqId = target.reqId;
+                        var aloId = target.aloId;
+
+                        io.to(reqId).emit('escapeGame', {});
+                        io.to(aloId).emit('escapeGame', {});
+
+                        delete game[requester];
+
+                        console.log(requester + '의 게임 터짐.');
+                        console.log(game);
+                }
         });
 
         // 가입 돼있는지 확인하는 API
@@ -85,9 +145,11 @@ io.on('connection', (socket) => {
                                 }, (err, ele) => {
                                         // ele가 null이면 가입 안돼있다.
                                         if (ele == null) {
+                                                console.log(phoneNumber + "는 가입돼있지 않다.");
                                                 io.to(socket.id).emit('isRegistered', {result:'no'});
                                         }
                                         else {
+                                                console.log(phoneNumber + "는 가입돼있다.");
                                                 io.to(socket.id).emit('isRegistered', {result:'yes'});
                                         }
                                         db.close();
@@ -104,7 +166,13 @@ io.on('connection', (socket) => {
                 if(!online.includes(phoneNumber)) {
                         clients[socket.id].connect(phoneNumber, name, () => {
                                 online.push(phoneNumber);
-                                onlineNames[phoneNumber] = name;
+                                target = clients[socket.id];
+                                onlineNames[phoneNumber] = {};
+                                onlineNames[phoneNumber].name = name;
+                                onlineNames[phoneNumber].win = target.num_win;
+                                onlineNames[phoneNumber].lose = target.num_lose;
+                                onlineNames[phoneNumber].tier = target.tier;
+                                onlineNames[phoneNumber].icon = target.icon;
                                 socketID[phoneNumber] = socket.id;
 
                                 io.to(socket.id).emit('signin', {result:'Sign In complete'});
@@ -198,11 +266,21 @@ io.on('connection', (socket) => {
         // 플레이어가 수를 뒀을 때. 항상 requester를 key로 보내야한다.
         socket.on('putPoint', (params) => {
                 var req = params.requester; // requester phoneNumber
-                var isRequester = params.isRequester; // 수를 둔 사람이 requester인지
+                var isRequester;
+
+                if(typeof params.isRequester === 'string')
+                        isRequester = (params.isRequester === 'true'); // 수를 둔 사람이 requester인지
+                else if(typeof params.isRequester === 'boolean')
+                        isRequester = params.isRequester; // 수를 둔 사람이 requester인지
+
+                console.log(params.isRequester + " " + typeof params.isRequester);
 
                 // requester의 phoneNumber를 key로 game instance를 가져온다.
+                console.log(req);
+                console.log(game);
                 var thisGame = game[req];
 
+                console.log(isRequester + " " + typeof isRequester);
                 if( (thisGame.turn == 0 && isRequester) || (thisGame.turn == 1 && !isRequester) ) { // requester턴이고, requester거나, requester 턴이 아니고, requester가 아니거나
                         thisGame.put(io, params);
                 } else {

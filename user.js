@@ -10,6 +10,7 @@ class User {
                 this.point = 0;
                 this.isPromoting = false;
                 this.tier = 30;
+                this.icon = 0;
         }
 
         connect(phoneNumber, name, cb) {
@@ -21,6 +22,8 @@ class User {
                                 }, (err, ele) => {
                                         // ele가 null이면 새로 가입한다.
                                         if (ele == null) {
+                                                var icon = Math.floor(Math.random() * 25) + 1;
+
                                                 db.collection('account').insert({
                                                         'phoneNumber': phoneNumber,
                                                         'name' : name,
@@ -28,7 +31,8 @@ class User {
                                                         'num_lose': 0,
                                                         'point': 0,
                                                         'tier': 30,
-                                                        'isPromoting': false
+                                                        'isPromoting': false,
+                                                        'icon' : icon
                                                 });
 
                                                 ele = {}
@@ -37,6 +41,7 @@ class User {
                                                 ele.point = 0;
                                                 ele.tier = 30;
                                                 ele.isPromoting = false;
+                                                ele.icon = icon;
 
                                                 console.log(vsprintf("%s 가입 완료", [phoneNumber]));
                                         }
@@ -48,6 +53,7 @@ class User {
                                         this.point = ele.point;
                                         this.isPromoting = ele.isPromoting;
                                         this.tier = ele.tier;
+                                        this.icon = ele.icon;
 
                                         console.log(vsprintf('%s 연결 완료', [phoneNumber]));
 
@@ -74,6 +80,7 @@ class User {
                                                 this.point = ele.point;
                                                 this.isPromoting = ele.isPromoting;
                                                 this.tier = ele.tier;
+                                                this.icon = ele.icon;
                                         }
 
                                         console.log(vsprintf('%s 리프레쉬 완료', [this.phoneNumber]));
