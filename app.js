@@ -291,7 +291,13 @@ io.on('connection', (socket) => {
         // endGame을 받으면 확인차 okEndGame을 서버에 보낸다.
         socket.on('okEndGame', (params) => {
                 if(clients[socket.id] != undefined) {
-                        clients[socket.id].refresh(() => {});
+                        clients[socket.id].refresh(() => {
+                                let user = clients[socket.id];
+                                let phoneNumber = user.phoneNumber;
+                                onlineNames[phoneNumber].win = user.num_win;
+                                onlineNames[phoneNumber].lose = user.num_lose;
+                                io.to(socket.id).emit('onlineList', onlineNames);
+                        })
                 }
         })
 
