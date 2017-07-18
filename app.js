@@ -256,7 +256,7 @@ io.on('connection', (socket) => {
                         // 첫 번째 턴을 시작한다.
                         thisGame.startTurn(io);
                 } else {
-                        var msg = onlineNames[requester] + "가 게임 생성 도중 사라졌습니다.";
+                        var msg = onlineNames[requester].name + "가 게임 생성 도중 사라졌습니다.";
                         // requester가 online 목록에 없으면 새 게임을 시작하지 않는다.
                         io.to(socket.id).emit('alert', {msg:msg});
                         console.log(msg);
