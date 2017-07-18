@@ -218,14 +218,14 @@ class Game {
                 cc = col;
                 cr = row;
                 while(isInner(cc + 1, cr + 1) && this.getPoint(cc + 1, cr + 1) == type) {
-                        cc += 1;
+                        cc -= 1;
                         cr += 1;
                 }
 
                 // 오른쪽 위부터 왼쪽 아래 대각선 센다.
                 while(isInner(cc, cr) && this.getPoint(cc, cr) == type) {
                         count += 1;
-                        cc -= 1;
+                        cc += 1;
                         cr -= 1;
                 }
 
