@@ -25,7 +25,7 @@ var online = []; // 접속자 명단 관리
 var onlineNames = {}; // phoneNumber를 key로 접속자 이름 관리.
 
 var ready = []; // 시작 준비중인 게임 관리
-var game = []; // 진행중인 게임 관리
+var game = {}; // 진행중인 게임 관리
 
 var User = require('./user');
 var Game = require('./game');
@@ -53,6 +53,19 @@ io.on('connection', (socket) => {
                 delete onlineNames[phoneNumber];
                 online = _.without(online, phoneNumber);
                 ready = _.without(ready, phoneNumber);
+
+                // 진행중인 게임 검색
+                var target = _.find(game, (ele) => {
+                        return ele.reqId === socket.id || ele.aloId === socket.id;
+                });
+
+                // 나간 플레이어가 진행중인 게임이 있을 경우
+                if(target != undefined) {
+                        target = target.req.phoneNumber;
+                        delete game[target];
+                }
+
+                console.log(game);
 
                 io.emit('onlineList', onlineNames);
 
@@ -196,6 +209,13 @@ io.on('connection', (socket) => {
                         io.to(socket.id).emit('alert', {msg:'잘못된 턴 입니다.'});
                 }
         });
+
+        // endGame을 받으면 확인차 okEndGame을 서버에 보낸다.
+        socket.on('okEndGame', (params) => {
+                if(clients[socket.id] != undefined) {
+                        clients[socket.id].refresh(() => {});
+                }
+        })
 
         socket.on('testBoard', (params) => {
                 var req = params.requester;

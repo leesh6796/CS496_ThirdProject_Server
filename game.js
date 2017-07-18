@@ -94,15 +94,42 @@ class Game {
 
                         this.checkFinish(col, row, type, (result) => {
                                 if(result) { // 게임 끝
-                                        this.endGame(io, phoneNumber, type); // phoneNumber와 백이 이겼는지, 흑이 이겼는지를 보낸다.
+                                        var isReqWin = this.turn == 0; // 이겼을 때 turn = 0이면 Req의 win
+
+                                        this.endGame(io, isReqWin, phoneNumber, type); // phoneNumber와 백이 이겼는지, 흑이 이겼는지를 보낸다.
                                 } else { // 안 끝
-                                        this.nextTurn(io);
+                                        this.nextTurn(io, col, row, type);
                                 }
                         });
                 }
         }
 
-        endGame(io) {
+        endGame(io, isReqWin, phoneNumber, type) {
+                var winner = this.req.phoneNumber;
+                var loser = this.alo.phoneNumber;
+                if(!isReqWin) {
+                        winner = this.alo.phoneNumber;
+                        loser = this.req.phoneNumber;
+                }
+
+                io.to(this.reqId).emit('endGame', {
+                        winner : winner,
+                        loser : loser
+                });
+
+                io.to(this.aloId).emit('endGame', {
+                        winner : winner,
+                        loser : loser
+                });
+
+                mongo.connect('mongodb://localhost:27017/bat', (error, db) => {
+                        if (error) console.log(error);
+                        else {
+                                db.collection('account').update({phoneNumber: winner}, {$inc : {num_win : 1}});
+                                db.collection('account').update({phoneNumber: loser}, {$inc : {num_lose : 1}});
+                        }
+                });
+
                 return '';
         }
 
@@ -186,7 +213,8 @@ class Game {
                 return cb(false);
         }
 
-        nextTurn(io) {
+        // 직전 수의 좌표와 흑돌인지 백돌인지 보낸다.
+        nextTurn(io, col, row, type) {
                 // 아직 바뀔 때 까지 턴 수 남았으면 1 감소하고
                 if(this.remainChangeTurn > 0) {
                         this.remainChangeTurn -= 1;
@@ -201,8 +229,8 @@ class Game {
                         }
 
                         // 플레이어들에게 남은 턴 수와 누구 턴인지를 알린다.
-                        io.to(this.reqId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, board : this.board});
-                        io.to(this.aloId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, board : this.board});
+                        io.to(this.reqId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
+                        io.to(this.aloId).emit('nextTurn', {remainChangeTurn : this.remainChangeTurn, turn : this.turn, prev_col : col, prev_row : row, prev_type : type});
                 }
         }
 }

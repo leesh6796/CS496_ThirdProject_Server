@@ -59,6 +59,33 @@ class User {
                         }
                 });
         }
+
+        refresh(cb) {
+                mongo.connect('mongodb://localhost:27017/bat', (error, db) => {
+                        if (error) console.log(error);
+                        else {
+                                var user = db.collection('account').findOne({
+                                        phoneNumber: this.phoneNumber
+                                }, (err, ele) => {
+                                        // ele가 null이면 새로 가입한다.
+                                        if (ele != null) {
+                                                this.num_win = ele.num_win;
+                                                this.num_lose = ele.num_lose;
+                                                this.point = ele.point;
+                                                this.isPromoting = ele.isPromoting;
+                                                this.tier = ele.tier;
+                                        }
+
+                                        console.log(vsprintf('%s 리프레쉬 완료', [this.phoneNumber]));
+
+                                        db.close();
+
+                                        // 연결 작업 끝났으면 콜백 실행.
+                                        cb();
+                                });
+                        }
+                });
+        }
 }
 
 module.exports = User;
